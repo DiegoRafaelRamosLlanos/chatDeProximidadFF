@@ -13,7 +13,8 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.MessageContent
     ]
 });
 
@@ -160,6 +161,77 @@ client.on(Events.InteractionCreate, async (interaction) => {
             // La interacción ya expiró, solo logear
             console.log('⚠️ No se pudo responder (interacción expirada)');
         }
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// COMANDOS RÁPIDOS DE ADMIN (ej: "45f" = jugador 45 a Factory)
+// ═══════════════════════════════════════════════════════════════
+const { ZONE_SHORTCUTS } = require('./commands/mover');
+const { PermissionFlagsBits } = require('discord.js');
+
+client.on(Events.MessageCreate, async (message) => {
+    // Ignorar bots
+    if (message.author.bot) return;
+
+    // Verificar que es un comando rápido: número + letras (ej: 45f, 12ct)
+    const quickCmd = message.content.toLowerCase().trim();
+    const match = quickCmd.match(/^(\d{1,2})([a-z]+)$/);
+    if (!match) return;
+
+    const playerNumber = parseInt(match[1]);
+    const zoneCode = match[2];
+
+    // Validar número (1-50)
+    if (playerNumber < 1 || playerNumber > 50) return;
+
+    // Validar código de zona
+    const zoneName = ZONE_SHORTCUTS[zoneCode];
+    if (!zoneName) return;
+
+    // Verificar permisos de admin
+    if (!message.member.permissions.has(PermissionFlagsBits.MoveMembers)) {
+        return; // Silenciosamente ignorar si no es admin
+    }
+
+    try {
+        // Buscar jugador por número
+        const playerData = playerManager.getPlayerByNumber(playerNumber);
+        if (!playerData) {
+            await message.reply({ content: `❌ No hay jugador #${playerNumber} registrado.` });
+            return;
+        }
+
+        // Obtener miembro de Discord
+        const member = await message.guild.members.fetch(playerData.odUserId).catch(() => null);
+        if (!member) {
+            await message.reply({ content: `❌ Jugador no encontrado en el servidor.` });
+            return;
+        }
+
+        // Actualizar ubicación
+        playerManager.setLocation(playerData.odUserId, 'bermuda', zoneName, member.user.username);
+
+        // Mover al canal de voz si está conectado
+        let voiceResult = { success: false, message: '' };
+        if (member.voice.channel) {
+            voiceResult = await voiceManager.moveToZoneChannel(
+                member,
+                message.guild,
+                'bermuda',
+                'Bermuda',
+                zoneName,
+                '🎮'
+            );
+        }
+
+        // Respuesta mínima para rapidez
+        await message.react('✅');
+        console.log(`⚡ [QUICK] #${playerNumber} → ${zoneName} (${member.user.username})`);
+
+    } catch (error) {
+        console.error('❌ [QUICK] Error:', error.message);
+        await message.react('❌').catch(() => { });
     }
 });
 

@@ -55,6 +55,22 @@ class PlayerManager {
         return data ? data.playerNumber : null;
     }
 
+    // Encontrar la siguiente butaca libre (1-55)
+    getNextAvailableNumber() {
+        const MAX_PLAYERS = 55;
+        for (let i = 1; i <= MAX_PLAYERS; i++) {
+            if (!this.numberToUser.has(i)) {
+                return i;
+            }
+        }
+        return null; // Todas las butacas ocupadas
+    }
+
+    // Contar butacas ocupadas
+    getOccupiedCount() {
+        return this.numberToUser.size;
+    }
+
     // Listar todos los jugadores registrados
     getRegisteredPlayers() {
         const registered = [];

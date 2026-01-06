@@ -3,46 +3,41 @@ const playerManager = require('../managers/PlayerManager');
 const voiceManager = require('../managers/VoiceChannelManager');
 const { maps } = require('../config/maps');
 
-// Códigos cortos para zonas (Bermuda)
+// Códigos cortos para zonas (Bermuda) - 20 zonas
 const ZONE_SHORTCUTS = {
-    // Bermuda
-    'p': 'Pochinok',
-    'po': 'Pochinok',
-    'o': 'Observatory',
-    'ob': 'Observatory',
-    'pk': 'Peak',
-    'pe': 'Peak',
-    'b': 'Bimasakti',
-    'bi': 'Bimasakti',
-    'f': 'Factory',
-    'fa': 'Factory',
-    'h': 'Hangar',
-    'ha': 'Hangar',
+    // Bermuda - Zonas correctas del mapa
+    'sh': 'Shipyard',
+    'bu': 'Bullseye',
     'r': 'Riverside',
     'ri': 'Riverside',
-    'w': 'Warehouse',
-    'wa': 'Warehouse',
-    'bu': 'Bullseye',
-    'ct': 'Clock Tower',
-    'c': 'Clock Tower',
-    'm': 'Mill',
-    'mi': 'Mill',
-    's': 'Sentinel',
-    'se': 'Sentinel',
     'g': 'Graveyard',
     'gr': 'Graveyard',
-    'me': 'Mars Electric',
-    'ma': 'Mars Electric',
-    'n': 'Nurek Dam',
-    'nu': 'Nurek Dam',
+    'pl': 'Plantation',
+    'm': 'Mill',
+    'mi': 'Mill',
+    'o': 'Observatory',
+    'ob': 'Observatory',
     'k': 'Katulistiwa',
     'ka': 'Katulistiwa',
-    'rn': 'Rim Nam',
+    'ke': 'Keraton',
+    'b': 'Bimasakti Strip',
+    'bi': 'Bimasakti Strip',
+    'ct': 'Clock Tower',
+    'c': 'Clock Tower',
+    'pk': 'Peak',
+    'pe': 'Peak',
     'cp': 'Cape Town',
     'ca': 'Cape Town',
-    'br': 'Brazilia',
-    'co': 'Command Post',
-    'sh': 'Shipyard'
+    'h': 'Hangar',
+    'ha': 'Hangar',
+    'f': 'Factory',
+    'fa': 'Factory',
+    'kt': 'Kota Tua',
+    'p': 'Pochinok',
+    'po': 'Pochinok',
+    'se': 'Sentosa',
+    'rn': 'Rim Nam Village',
+    'me': 'Mars Electric'
 };
 
 module.exports = {

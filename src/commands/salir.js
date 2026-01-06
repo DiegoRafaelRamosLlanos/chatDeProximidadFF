@@ -5,23 +5,23 @@ const voiceManager = require('../managers/VoiceChannelManager');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('salir')
-        .setDescription('🚪 Salir de tu ubicación actual'),
+        .setDescription('🚪 Salir de la sala y liberar tu butaca'),
 
     async execute(interaction) {
-        const location = playerManager.getLocation(interaction.user.id);
+        const userId = interaction.user.id;
+        const playerNumber = playerManager.getNumberByUserId(userId);
+        const location = playerManager.getLocation(userId);
 
-        // Si no tiene ubicación
-        if (!location) {
-            const embed = new EmbedBuilder()
-                .setColor(0xFFAA00)
-                .setTitle('🤔 Ya estás fuera')
-                .setDescription('No tienes ninguna ubicación establecida.');
-
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+        // Si no está registrado
+        if (!playerNumber && !location) {
+            return interaction.reply({
+                content: '🤔 No estás registrado en ninguna butaca.',
+                flags: 64
+            });
         }
 
-        // Remover jugador
-        playerManager.removePlayer(interaction.user.id);
+        // Remover jugador (libera butaca y ubicación)
+        playerManager.removePlayer(userId);
 
         // Desconectar del canal de voz
         let voiceMessage = '';
@@ -29,26 +29,13 @@ module.exports = {
 
         if (member && member.voice.channel) {
             const result = await voiceManager.disconnectFromVoice(member);
-            voiceMessage = result.message;
+            voiceMessage = `\n🔊 ${result.message}`;
         }
 
-        const embed = new EmbedBuilder()
-            .setColor(0x9932CC)
-            .setTitle('👋 Has salido')
-            .setDescription('Ya no apareces en ninguna zona del mapa.')
-            .addFields(
-                {
-                    name: '🔊 Canal de voz',
-                    value: voiceMessage || 'No estabas en un canal de voz.',
-                    inline: true
-                },
-                {
-                    name: '💡 Volver a entrar',
-                    value: 'Usa `/ubicacion` cuando quieras indicar tu posición de nuevo.',
-                    inline: false
-                }
-            );
-
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        const occupied = playerManager.getOccupiedCount();
+        await interaction.reply({
+            content: `👋 Has salido. Butaca **#${playerNumber || '?'}** liberada.${voiceMessage}\n\n📊 Jugadores: ${occupied}/55`,
+            flags: 64
+        });
     }
 };
