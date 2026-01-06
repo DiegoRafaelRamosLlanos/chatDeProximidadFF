@@ -1,0 +1,23 @@
+{
+  "name": "chat-proximidad-freefire",
+  "version": "1.0.0",
+  "description": "Bot de Discord para chat de proximidad en Free Fire",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "freefire",
+    "proximity",
+    "chat"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "express": "^5.2.1"
+  }
+}
