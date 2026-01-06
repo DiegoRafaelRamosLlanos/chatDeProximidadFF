@@ -1,28 +1,81 @@
-// Gestor de jugadores y sus ubicaciones
+// Gestor de jugadores y sus ubicaciones con persistencia
+const fs = require('fs');
+const path = require('path');
+
+const DATA_FILE = path.join(__dirname, '..', '..', 'data', 'players.json');
+
 class PlayerManager {
     constructor() {
         // Map: odUserId -> { map, zone, timestamp, username, playerNumber }
         this.players = new Map();
         // Map: playerNumber -> odUserId (para búsqueda rápida)
         this.numberToUser = new Map();
+
+        // Cargar datos guardados
+        this.loadData();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PERSISTENCIA DE DATOS
+    // ═══════════════════════════════════════════════════════════════
+
+    loadData() {
+        try {
+            if (fs.existsSync(DATA_FILE)) {
+                const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+
+                // Restaurar players
+                if (data.players) {
+                    for (const [key, value] of Object.entries(data.players)) {
+                        this.players.set(key, value);
+                    }
+                }
+
+                // Restaurar numberToUser
+                if (data.numberToUser) {
+                    for (const [key, value] of Object.entries(data.numberToUser)) {
+                        this.numberToUser.set(parseInt(key), value);
+                    }
+                }
+
+                console.log(`📂 Datos cargados: ${this.numberToUser.size} jugadores`);
+            }
+        } catch (error) {
+            console.error('⚠️ Error cargando datos:', error.message);
+        }
+    }
+
+    saveData() {
+        try {
+            // Crear directorio si no existe
+            const dir = path.dirname(DATA_FILE);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+
+            const data = {
+                players: Object.fromEntries(this.players),
+                numberToUser: Object.fromEntries(this.numberToUser)
+            };
+
+            fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+        } catch (error) {
+            console.error('⚠️ Error guardando datos:', error.message);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
     // REGISTRO DE NÚMEROS DE JUGADOR
     // ═══════════════════════════════════════════════════════════════
 
-    // Registrar número de asiento
     registerPlayerNumber(odUserId, playerNumber, username) {
-        // Si el usuario ya tenía otro número, liberarlo
         const existingData = this.players.get(odUserId);
         if (existingData && existingData.playerNumber) {
             this.numberToUser.delete(existingData.playerNumber);
         }
 
-        // Registrar el nuevo número
         this.numberToUser.set(playerNumber, odUserId);
 
-        // Actualizar o crear datos del jugador
         const currentData = this.players.get(odUserId) || {};
         this.players.set(odUserId, {
             ...currentData,
@@ -30,9 +83,10 @@ class PlayerManager {
             username: username,
             timestamp: Date.now()
         });
+
+        this.saveData(); // Guardar automáticamente
     }
 
-    // Obtener jugador por número de asiento
     getPlayerByNumber(playerNumber) {
         const odUserId = this.numberToUser.get(playerNumber);
         if (!odUserId) return null;
@@ -49,13 +103,11 @@ class PlayerManager {
         };
     }
 
-    // Obtener número por ID de usuario
     getNumberByUserId(odUserId) {
         const data = this.players.get(odUserId);
         return data ? data.playerNumber : null;
     }
 
-    // Encontrar la siguiente butaca libre (1-55)
     getNextAvailableNumber() {
         const MAX_PLAYERS = 55;
         for (let i = 1; i <= MAX_PLAYERS; i++) {
@@ -63,15 +115,13 @@ class PlayerManager {
                 return i;
             }
         }
-        return null; // Todas las butacas ocupadas
+        return null;
     }
 
-    // Contar butacas ocupadas
     getOccupiedCount() {
         return this.numberToUser.size;
     }
 
-    // Listar todos los jugadores registrados
     getRegisteredPlayers() {
         const registered = [];
         for (const [number, odUserId] of this.numberToUser) {
@@ -92,7 +142,6 @@ class PlayerManager {
     // GESTIÓN DE UBICACIONES
     // ═══════════════════════════════════════════════════════════════
 
-    // Establecer ubicación de un jugador
     setLocation(odUserId, mapId, zoneId, username) {
         const currentData = this.players.get(odUserId) || {};
         this.players.set(odUserId, {
@@ -102,17 +151,16 @@ class PlayerManager {
             username: username,
             timestamp: Date.now()
         });
+
+        this.saveData(); // Guardar automáticamente
     }
 
-    // Obtener ubicación de un jugador
     getLocation(odUserId) {
         return this.players.get(odUserId) || null;
     }
 
-    // Obtener todos los jugadores en una zona específica
     getPlayersInZone(mapId, zoneId) {
         const playersInZone = [];
-
         for (const [odUserId, data] of this.players) {
             if (data.map === mapId && data.zone === zoneId) {
                 playersInZone.push({
@@ -123,14 +171,11 @@ class PlayerManager {
                 });
             }
         }
-
         return playersInZone;
     }
 
-    // Obtener todos los jugadores en un mapa
     getPlayersInMap(mapId) {
         const playersInMap = [];
-
         for (const [odUserId, data] of this.players) {
             if (data.map === mapId) {
                 playersInMap.push({
@@ -142,26 +187,26 @@ class PlayerManager {
                 });
             }
         }
-
         return playersInMap;
     }
 
-    // Remover un jugador
     removePlayer(odUserId) {
         const data = this.players.get(odUserId);
         if (data && data.playerNumber) {
             this.numberToUser.delete(data.playerNumber);
         }
-        return this.players.delete(odUserId);
+        const result = this.players.delete(odUserId);
+
+        this.saveData(); // Guardar automáticamente
+        return result;
     }
 
-    // Limpiar todos los registros (útil para nueva partida)
     clearAll() {
         this.players.clear();
         this.numberToUser.clear();
+        this.saveData();
     }
 
-    // Obtener estadísticas
     getStats() {
         const stats = {
             totalPlayers: this.players.size,
@@ -182,6 +227,4 @@ class PlayerManager {
     }
 }
 
-// Exportar una instancia única (singleton)
 module.exports = new PlayerManager();
-

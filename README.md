@@ -18,12 +18,14 @@ npm install
 copy .env.example .env
 ```
 
-Editar `.env` con tus credenciales:
-```env
-DISCORD_TOKEN=tu_token_del_bot
-CLIENT_ID=tu_application_id
-GUILD_ID=tu_server_id
-```
+Admin revoca butaca	/revocar {número}
+Jugador sale solo	/salir
+/butacas
+
+Comando	¿Quién puede usarlo?
+/revocar	Solo admins (permiso "Mover miembros") ✅
+/mover	Solo admins ✅
+45f (rápido)	Solo admins ✅
 
 ### 3. Iniciar el Servidor
 
