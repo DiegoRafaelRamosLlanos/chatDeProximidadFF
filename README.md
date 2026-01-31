@@ -60,7 +60,20 @@ El bot mostrará:
 |---------|-------------|
 | `/revocar 15` | Revocar butaca #15 |
 | `/mover 15 f` | Mover jugador #15 a Factory |
+| `/confinar 15 #canal` | Confinar jugador #15 a un canal (bloquea otros) |
+| `/confinar todos #canal` | Confinar a todos los jugadores registrados |
+| `/liberar 15` | Liberar jugador #15 del confinamiento |
+| `/liberar todos` | Liberar a todos los confinados |
 | `15f` | Comando rápido: mover #15 a Factory |
+
+### 🔒 Sistema de Confinamiento
+
+El comando `/confinar` crea un rol **🔒 Confinado** que:
+- Bloquea la conexión a **todos** los canales de voz
+- Solo permite conectarse al canal especificado
+- Los jugadores confinados no pueden cambiarse a otros canales
+
+**Requisitos del bot:** El bot necesita los permisos **"Gestionar roles"** y **"Mover miembros"**.
 
 ---
 
