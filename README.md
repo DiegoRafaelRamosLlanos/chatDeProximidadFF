@@ -58,6 +58,7 @@ El bot mostrará:
 ### Para Administradores
 | Comando | Descripción |
 |---------|-------------|
+| `/butacas` | Ver lista de butacas ocupadas y jugadores |
 | `/revocar 15` | Revocar butaca #15 |
 | `/mover 15 f` | Mover jugador #15 a Factory |
 | `/confinar 15 #canal` | Confinar jugador #15 a un canal (bloquea otros) |
