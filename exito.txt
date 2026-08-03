@@ -1,0 +1,2 @@
+Guardado exitoso: True
+Ruta: C:\Users\Mary 2026\chatDeProximidadFF\vision_debug.png

@@ -1,0 +1,6 @@
+-> Iniciando MAIN
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado, iniciando deteccion
+-> Deteccion finalizada, guardando imagen

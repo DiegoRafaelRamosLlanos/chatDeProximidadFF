@@ -36,12 +36,13 @@ GUILD_ID = "1454092469221458024"
 BOT_API_URL = "http://localhost:3001/api/location"
 
 # Región de la pantalla a leer (x, y, ancho, alto)
-# Ajusta esto según dónde aparezca el nombre de la zona en tu pantalla
+# Capturamos un área grande del lado izquierdo de la pantalla
+# donde suele estar el minimapa para evitar tener que calibrar exacto.
 SCREEN_REGION = {
-    "left": 100,    # Posición X desde la izquierda
-    "top": 50,      # Posición Y desde arriba
-    "width": 300,   # Ancho del rectángulo
-    "height": 50    # Alto del rectángulo
+    "left": 0,      # Empezar desde el borde izquierdo
+    "top": 150,     # Bajar un poco
+    "width": 400,   # Ancho generoso
+    "height": 400   # Alto generoso
 }
 
 # Mapa que estás jugando
