@@ -182,6 +182,12 @@ def detect_players_by_template(img):
         
         for (bbox, texto, confianza) in resultados:
             texto_limpio = texto.strip()
+            
+            # El número 6 (solo) casi siempre es interpretado como un 0 por EasyOCR
+            # Como no existe el jugador "0", lo mapeamos automáticamente al 6.
+            if texto_limpio == '0' and confianza > 0.60:
+                texto_limpio = '6'
+                
             if texto_limpio.isdigit():
                 num = int(texto_limpio)
                 if 1 <= num <= 60 and confianza > mejor_confianza and confianza > 0.45:
