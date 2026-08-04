@@ -51,10 +51,21 @@ def detect_players_by_template(img):
     # =========================================================
     # PASO 1: Recortar SOLO el area del mapa
     # =========================================================
-    map_x_start = int(w * 0.48)
-    map_y_start = int(h * 0.05)
-    map_x_end = int(w * 0.98)
-    map_y_end = int(h * 0.92)
+    coords_file = "data/map_coords.json"
+    if os.path.exists(coords_file):
+        import json
+        with open(coords_file, "r") as f:
+            coords = json.load(f)
+            map_x_start = coords["map_x_start"]
+            map_y_start = coords["map_y_start"]
+            map_x_end = coords["map_x_end"]
+            map_y_end = coords["map_y_end"]
+    else:
+        # Valores por defecto basados en porcentajes
+        map_x_start = int(w * 0.48)
+        map_y_start = int(h * 0.05)
+        map_x_end = int(w * 0.98)
+        map_y_end = int(h * 0.92)
     
     map_region = img[map_y_start:map_y_end, map_x_start:map_x_end]
     output = img.copy()
