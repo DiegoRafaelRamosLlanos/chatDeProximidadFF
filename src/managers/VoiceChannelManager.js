@@ -116,6 +116,107 @@ class VoiceChannelManager {
             return { success: false, message: '❌ No se pudo desconectarte.' };
         }
     }
+
+    /**
+     * Mueve un usuario a un canal dinámico (para encuentros)
+     */
+    async moveToDynamicChannel(member, guild, channelName) {
+        if (!member.voice.channel) return { success: false, message: 'No está en voz' };
+
+        // Buscar canal dinámico
+        let channel = guild.channels.cache.find(
+            c => c.type === ChannelType.GuildVoice && c.name === channelName
+        );
+
+        if (!channel) {
+            try {
+                const categoryName = '⚔️ ENCUENTROS DINÁMICOS';
+                let category = guild.channels.cache.find(
+                    c => c.type === ChannelType.GuildCategory && c.name === categoryName
+                );
+                if (!category) {
+                    category = await guild.channels.create({ 
+                        name: categoryName, 
+                        type: ChannelType.GuildCategory,
+                        permissionOverwrites: [
+                            {
+                                id: guild.roles.everyone.id,
+                                allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.ViewChannel]
+                            }
+                        ]
+                    });
+                }
+
+                channel = await guild.channels.create({
+                    name: channelName,
+                    type: ChannelType.GuildVoice,
+                    parent: category.id,
+                    permissionOverwrites: [
+                        {
+                            id: guild.roles.everyone.id,
+                            allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.ViewChannel]
+                        }
+                    ]
+                });
+                console.log(`⚔️ Canal dinámico creado: ${channelName}`);
+            } catch (e) {
+                console.error(`Error creando canal dinámico ${channelName}:`, e.message);
+                return { success: false };
+            }
+        }
+
+        try {
+            if (member.voice.channel.id !== channel.id) {
+                await member.voice.setChannel(channel);
+            }
+            return { success: true, channel: channel };
+        } catch (e) {
+            return { success: false };
+        }
+    }
+
+    /**
+     * Mueve a un usuario a la Sala General
+     */
+    async moveToSala(member, guild) {
+        if (!member.voice.channel) return { success: false };
+        
+        let sala = guild.channels.cache.find(c => c.type === ChannelType.GuildVoice && c.name.toLowerCase().includes("sala"));
+        
+        if (!sala) return { success: false, message: 'No se encontró Sala' };
+
+        try {
+            if (member.voice.channel.id !== sala.id) {
+                await member.voice.setChannel(sala);
+            }
+            return { success: true };
+        } catch (e) {
+            return { success: false };
+        }
+    }
+
+    /**
+     * Limpia los canales dinámicos vacíos
+     */
+    async cleanupEmptyDynamicChannels(guild) {
+        const categoryName = '⚔️ ENCUENTROS DINÁMICOS';
+        let category = guild.channels.cache.find(
+            c => c.type === ChannelType.GuildCategory && c.name === categoryName
+        );
+
+        if (!category) return;
+
+        for (const [id, channel] of category.children.cache) {
+            if (channel.type === ChannelType.GuildVoice && channel.members.size === 0) {
+                try {
+                    await channel.delete('Canal de encuentro vacío');
+                    console.log(`🗑️ Canal dinámico eliminado: ${channel.name}`);
+                } catch (e) {
+                    // Ignore deletion errors
+                }
+            }
+        }
+    }
 }
 
 module.exports = new VoiceChannelManager();

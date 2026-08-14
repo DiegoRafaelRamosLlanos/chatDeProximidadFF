@@ -4,6 +4,7 @@ import mss
 import os
 import time
 import easyocr
+import requests
 
 # Crear carpeta para debug
 DEBUG_DIR = "debug_circles"
@@ -20,11 +21,6 @@ print("Motor OCR listo!")
 
 def capture_screen():
     with open("trace.txt", "a") as f: f.write("-> Iniciando capture_screen\n")
-    print("Tienes 10 segundos para abrir el juego con el mapa grande...")
-    for i in range(10, 0, -1):
-        print(f"   {i}...")
-        time.sleep(1)
-        
     print("Tomando captura de pantalla...")
     with open("trace.txt", "a") as f: f.write("-> Tomando captura...\n")
     try:
@@ -74,6 +70,27 @@ def detect_players_by_template(img):
     
     # Rectangulo azul del area de busqueda
     cv2.rectangle(output, (map_x_start, map_y_start), (map_x_end, map_y_end), (255, 0, 0), 2)
+    
+    # Cargar zonas poligonales si existen
+    zonas_definidas = []
+    zonas_file = "data/zonas.json"
+    if os.path.exists(zonas_file):
+        try:
+            import json
+            with open(zonas_file, "r") as f:
+                zonas_definidas = json.load(f)
+            
+            # Dibujar las zonas en el output para debug
+            for z in zonas_definidas:
+                pts = np.array(z["points"], np.int32)
+                pts = pts.reshape((-1, 1, 2))
+                cv2.polylines(output, [pts], isClosed=True, color=(255, 165, 0), thickness=2)
+                # Dibujar el nombre de la zona
+                cx = int(np.mean([p[0] for p in z["points"]]))
+                cy = int(np.mean([p[1] for p in z["points"]]))
+                cv2.putText(output, z["name"], (cx - 20, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
+        except Exception as e:
+            print(f"Error cargando zonas: {e}")
     
     jugadores_detectados = []
     
@@ -225,9 +242,23 @@ def detect_players_by_template(img):
             abs_x = circ['cx'] + map_x_start
             abs_y = circ['cy'] + map_y_start
             
-            print(f"   >> JUGADOR #{numero_leido} detectado en X:{abs_x} Y:{abs_y} (Confianza OCR: {mejor_confianza:.2f})")
+            # Determinar en qué zona está el jugador
+            zona_actual = "Desconocida"
+            for z in zonas_definidas:
+                pts = np.array(z["points"], np.float32)
+                # pointPolygonTest devuelve > 0 si está dentro, = 0 si está en el borde
+                if cv2.pointPolygonTest(pts, (float(abs_x), float(abs_y)), False) >= 0:
+                    zona_actual = z["name"]
+                    break
             
-            jugador_info = {"id": numero_leido, "x": abs_x, "y": abs_y}
+            print(f"   >> JUGADOR #{numero_leido} detectado en X:{abs_x} Y:{abs_y} [Zona: {zona_actual}] (Confianza: {mejor_confianza:.2f})")
+            
+            jugador_info = {
+                "id": int(numero_leido), 
+                "x": int(abs_x), 
+                "y": int(abs_y), 
+                "zona": str(zona_actual)
+            }
             jugadores_detectados.append(jugador_info)
             
             # Dibujar recuadro verde y número
@@ -251,57 +282,62 @@ def detect_players_by_template(img):
 
 def main():
     with open("trace.txt", "w") as f: f.write("-> Iniciando MAIN\n")
-    try:
-        # Verificar si hay plantillas antes de tomar la captura
-        plantillas = [f for f in os.listdir(TEMPLATES_DIR) if f.endswith(".png")]
-        if not plantillas:
-            print("\n[ATENCION] No se encontraron imagenes de plantilla en la carpeta 'templates'.")
-            print("Por favor, sigue las instrucciones para crear jugador_1.png, jugador_2.png, etc.")
-            print("Guardaremos una captura de pantalla actual para que puedas recortarlas.")
+    
+    # Verificar si hay plantillas antes de empezar
+    plantillas = [f for f in os.listdir(TEMPLATES_DIR) if f.endswith(".png")]
+    if not plantillas:
+        print("\n[ATENCION] No se encontraron imagenes de plantilla en la carpeta 'templates'.")
+        print("Por favor, sigue las instrucciones para crear jugador_1.png, jugador_2.png, etc.")
+    
+    print("\n===================================================")
+    print("ESCANER CONTINUO INICIADO (Ctrl+C para detener)")
+    print("===================================================\n")
+    
+    ciclo = 1
+    while True:
+        try:
+            print(f"\n--- [ CICLO DE ESCANEO #{ciclo} ] ---")
+            img = capture_screen()
+            with open("trace.txt", "a") as f: f.write(f"-> Capture screen finalizado (ciclo {ciclo})\n")
             
-        img = capture_screen()
-        with open("trace.txt", "a") as f: f.write("-> Capture screen finalizado, iniciando deteccion\n")
-        
-        resultado_img, jugadores = detect_players_by_template(img)
-        
-        with open("trace.txt", "a") as f: f.write("-> Deteccion finalizada, guardando imagen\n")
-
-        # Usar ruta absoluta estricta para evitar problemas
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        out_filename = os.path.join(base_dir, "vision_debug.png")
-        exito = cv2.imwrite(out_filename, resultado_img)
-        
-        # Crear un archivo de texto como prueba de que llegó hasta aquí
-        with open(os.path.join(base_dir, "exito.txt"), "w") as f:
-            f.write(f"Guardado exitoso: {exito}\nRuta: {out_filename}")
-        
-        if not exito:
-            print(f"ALERTA: No se pudo guardar {out_filename}. ¿Está abierto en otro programa?")
+            resultado_img, jugadores = detect_players_by_template(img)
             
-        print(f"\nImagen principal guardada en: {out_filename}")
-        
-        if jugadores:
-            print("\n=== JUGADORES DETECTADOS ===")
-            for j in jugadores:
-                print(f"   Butaca #{j['id']} -> Posicion ({j['x']}, {j['y']})")
+            # Guardar la imagen de depuración
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            out_filename = os.path.join(base_dir, "vision_debug.png")
+            cv2.imwrite(out_filename, resultado_img)
             
-            print("\n=== DISTANCIAS ENTRE JUGADORES ===")
-            for i in range(len(jugadores)):
-                for j in range(i+1, len(jugadores)):
-                    dx = jugadores[i]['x'] - jugadores[j]['x']
-                    dy = jugadores[i]['y'] - jugadores[j]['y']
-                    dist = (dx**2 + dy**2) ** 0.5
-                    cercanos = " << CERCANOS!" if dist < 100 else ""
-                    print(f"   #{jugadores[i]['id']} <-> #{jugadores[j]['id']}: {dist:.0f} px{cercanos}")
-        else:
-            print("\nNo se identificaron jugadores.")
+            if jugadores:
+                print("\n=== JUGADORES DETECTADOS ===")
+                for j in jugadores:
+                    print(f"   Butaca #{j['id']} -> Posicion ({j['x']}, {j['y']}) en Zona: {j.get('zona', 'Desconocida')}")
+                
+                print("\n=== ENVIANDO DATOS A DISCORD ===")
+                try:
+                    payload = {"players": jugadores, "guildId": "1454092469221458024"}
+                    response = requests.post("http://localhost:3001/api/proximity", json=payload, timeout=5)
+                    if response.status_code == 200:
+                        print("✅ Datos enviados con éxito al bot.")
+                    else:
+                        print(f"⚠️ El bot respondió con error: {response.status_code}")
+                except Exception as req_e:
+                    print(f"❌ Error conectando con el bot: {req_e}")
+                    
+            else:
+                print("No se identificaron jugadores.")
+                
+            print("Esperando 2 segundos para el siguiente escaneo...")
+            time.sleep(2)
+            ciclo += 1
             
-    except Exception as e:
-        print(f"ERROR: {e}")
-        import traceback
-        with open("crash_log.txt", "w") as f:
-            f.write(traceback.format_exc())
-        traceback.print_exc()
+        except KeyboardInterrupt:
+            print("\nDeteniendo escáner...")
+            break
+        except Exception as e:
+            print(f"ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            time.sleep(2)
 
 if __name__ == "__main__":
     main()

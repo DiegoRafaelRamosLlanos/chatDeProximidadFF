@@ -81,6 +81,92 @@ app.post('/api/location', async (req, res) => {
     }
 });
 
+// Endpoint para recibir la lista completa de jugadores (Clustering y Canales Dinámicos)
+app.post('/api/proximity', async (req, res) => {
+    try {
+        const { players, guildId } = req.body;
+        if (!players || !guildId) return res.status(400).json({ error: 'Faltan players o guildId' });
+
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) return res.status(404).json({ error: 'Servidor no encontrado' });
+
+        // Cargar mapeo de ID en juego a ID de Discord
+        let numberToUser = {};
+        try {
+            const playersData = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/players.json'), 'utf8'));
+            numberToUser = playersData.numberToUser || {};
+        } catch (e) {
+            console.error('No se pudo cargar players.json');
+        }
+
+        // Obtener miembros conectados en voz
+        const activeMembers = [];
+        for (const p of players) {
+            const discordId = numberToUser[p.id.toString()];
+            if (discordId) {
+                const member = await guild.members.fetch(discordId).catch(() => null);
+                if (member && member.voice.channel) {
+                    activeMembers.push({ ...p, member });
+                }
+            }
+        }
+
+        // Algoritmo de Clustering (agrupar jugadores a menos de 100px)
+        const DISTANCE_THRESHOLD = 100;
+        const clusters = [];
+        const visited = new Set();
+
+        for (let i = 0; i < activeMembers.length; i++) {
+            if (visited.has(i)) continue;
+            const cluster = [activeMembers[i]];
+            visited.add(i);
+            
+            // Expandir cluster
+            for (let j = 0; j < cluster.length; j++) {
+                const current = cluster[j];
+                for (let k = 0; k < activeMembers.length; k++) {
+                    if (!visited.has(k)) {
+                        const other = activeMembers[k];
+                        const dist = Math.sqrt(Math.pow(current.x - other.x, 2) + Math.pow(current.y - other.y, 2));
+                        if (dist <= DISTANCE_THRESHOLD) {
+                            cluster.push(other);
+                            visited.add(k);
+                        }
+                    }
+                }
+            }
+            clusters.push(cluster);
+        }
+
+        // Procesar los clústeres
+        for (const cluster of clusters) {
+            if (cluster.length > 1) {
+                // Hay un encuentro de 2 o más jugadores
+                const zones = [...new Set(cluster.map(p => p.zona).filter(z => z && z !== "Desconocida"))];
+                let channelName = "⚔️ Encuentro";
+                if (zones.length > 0) {
+                    channelName = "⚔️ " + zones.join(" y ");
+                }
+                
+                for (const p of cluster) {
+                    await voiceManager.moveToDynamicChannel(p.member, guild, channelName);
+                }
+            } else {
+                // Jugador solitario -> Devolver a la Sala General
+                await voiceManager.moveToSala(cluster[0].member, guild);
+            }
+        }
+
+        // Limpiar canales de encuentro vacíos
+        await voiceManager.cleanupEmptyDynamicChannels(guild);
+
+        res.json({ success: true, clusters: clusters.length, playersProcessed: activeMembers.length });
+    } catch (error) {
+        console.error('❌ [API] Error en proximity:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', bot: client.isReady() ? 'connected' : 'disconnected' });

@@ -2,5 +2,40 @@
 -> Iniciando capture_screen
 -> Tomando captura...
 -> Captura MSS exitosa
--> Capture screen finalizado, iniciando deteccion
--> Deteccion finalizada, guardando imagen
+-> Capture screen finalizado (ciclo 1)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 2)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 3)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 4)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 5)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 6)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 7)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 8)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 9)
+-> Iniciando capture_screen
+-> Tomando captura...
+-> Captura MSS exitosa
+-> Capture screen finalizado (ciclo 10)
